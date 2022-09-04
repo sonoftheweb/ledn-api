@@ -5,6 +5,7 @@ import { readFileSync } from "fs";
 import Account, { IAccount, Status } from "../models/Account";
 import Transaction, { ITransaction } from "../models/Transaction";
 import AccountService from "../services/AccountService";
+import TransactionService from "../services/TransactionService";
 
 export function addAccounts(
   size: string = "small",
@@ -36,18 +37,31 @@ export function addAccounts(
         path.join(__dirname, files.transactions),
         "utf8"
       );
-      const formattedTransactionsData = JSON.parse(transactionsData);
+      let formattedTransactionsData = JSON.parse(transactionsData)
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+        .map((t: ITransaction) => {
+          t._id = new mongoose.Types.ObjectId().toString();
+          return t;
+        });
 
       // set status to boolean and filter out duplicate emails
       const seen = new Set();
       let formattedAccountData = JSON.parse(accountsData)
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
         .map((d: IAccount) => {
           d.status = d.status === "active" ? Status.active : Status.inactive;
+          d._id = new mongoose.Types.ObjectId().toString();
 
           //filter all transactions for this account
-          d["transactions"] = formattedTransactionsData.filter(
-            (t: ITransaction) => t.userEmail === d.userEmail
-          );
+          d.transactions = formattedTransactionsData
+            .filter((t: ITransaction) => t.userEmail === d.userEmail)
+            .map((t: ITransaction) => t._id);
 
           return d;
         })
@@ -57,11 +71,20 @@ export function addAccounts(
           return !duplicate;
         });
 
-      const as = new AccountService();
+      formattedTransactionsData = formattedTransactionsData.map(
+        (t: ITransaction) => {
+          t.account = formattedAccountData.find(
+            (a: IAccount) => a.userEmail === t.userEmail
+          )?._id;
+          return t;
+        }
+      );
 
-      for (const a of formattedAccountData) {
-        await as.addAccount(a);
-      }
+      const as = new AccountService();
+      const ts = new TransactionService();
+
+      await ts.addTransactions(formattedTransactionsData);
+      await as.addAccounts(formattedAccountData);
 
       if (callback) callback();
     });

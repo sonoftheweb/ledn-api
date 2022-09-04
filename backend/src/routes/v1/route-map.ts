@@ -1,7 +1,5 @@
 export interface Route {
   controller: string;
-  model: string;
-  smart: boolean;
 }
 
 export interface Routes {
@@ -11,7 +9,5 @@ export interface Routes {
 export const routeMap: Routes = {
   accounts: {
     controller: "AccountController",
-    model: "Account",
-    smart: true,
   },
 };

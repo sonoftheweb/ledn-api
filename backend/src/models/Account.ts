@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import TransactionSchema, { ITransaction } from "./Transaction";
+import Transaction, { ITransaction } from "./Transaction";
 
 export enum Status {
   active = 1,
@@ -7,6 +7,7 @@ export enum Status {
 }
 
 export interface IAccount extends Document {
+  _id?: string;
   userEmail: string;
   status: Status | String;
   transactions?: ITransaction[];
@@ -14,12 +15,13 @@ export interface IAccount extends Document {
   updatedAt?: Date;
 }
 
-const AccountSchema: Schema = new Schema({
-  userEmail: { type: String, required: true, unique: true },
-  status: { type: Number, required: true },
-  createdAt: { type: Date },
-  updatedAt: { type: Date },
-  transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Transaction" }],
-});
+const AccountSchema: Schema = new Schema(
+  {
+    userEmail: { type: String, required: true, unique: true },
+    status: { type: Number, required: true },
+    transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: Transaction }],
+  },
+  { timestamps: true }
+);
 
 export default mongoose.model<IAccount>("Account", AccountSchema);

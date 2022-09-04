@@ -1,34 +1,44 @@
 import Account, { IAccount } from "../models/Account";
-import TransactionService from "./TransactionService";
+import MainService from "./MainService";
+import mongoose from "mongoose";
+import { isObjectId } from "../helpers/string-helpers";
 
-class AccountService {
-  private account = Account;
-  private transactionService = new TransactionService();
+export interface IAccountService {
+  account: mongoose.Model<IAccount>;
+  addAccount: (account: IAccount) => Promise<IAccount>;
+  addAccounts: (account: IAccount[]) => Promise<IAccount[]>;
+  get: (page: number, perPage: number) => Promise<IAccount[]>;
+  addTransactions: (
+    accountId: string,
+    transactionIds: string[]
+  ) => Promise<void>;
+}
 
-  public async addAccount(account: IAccount) {
-    let transactions;
-    if (account.transactions?.length) {
-      transactions = account.transactions;
-      transactions = await this.transactionService.addTransactions(
-        transactions
-      );
-      account.transactions = transactions.map((t) => t.id);
-    }
+class AccountService extends MainService implements IAccountService {
+  account: mongoose.Model<IAccount>;
 
+  constructor() {
+    super();
+    this.account = Account;
+  }
+
+  public async addAccount(account: IAccount): Promise<IAccount> {
     return this.account.create(account);
   }
 
-  public async addAccounts(accounts: IAccount[]) {
+  public async addAccounts(accounts: IAccount[]): Promise<IAccount[]> {
     return this.account.insertMany(accounts);
   }
 
-  public async accounts(
+  public async get(
     page: number = 1,
     perPage: number = 10
   ): Promise<Array<IAccount>> {
+    // or you could do Promise<IAccount[]>
     try {
       return await this.account
         .find()
+        .populate("transactions")
         .limit(perPage)
         .skip(perPage * page);
     } catch (e) {
@@ -36,15 +46,30 @@ class AccountService {
     }
   }
 
-  public async get(userEmail: String): Promise<IAccount | null> {
+  public async find(
+    identifier: string,
+    withTransactions: boolean = true
+  ): Promise<any> {
     try {
-      return await this.account.findOne({ userEmail: userEmail });
+      let data,
+        filter = isObjectId(identifier)
+          ? { _id: identifier }
+          : { userEmail: identifier };
+      if (withTransactions) {
+        data = await this.account
+          .findOne(filter)
+          .populate("transactions")
+          .exec();
+      } else {
+        data = await this.account.findOne(filter);
+      }
+      return data;
     } catch (e) {
       throw new Error((e as Error).message);
     }
   }
 
-  public async addTransactions(accountId: number, transactionIds: Number[]) {
+  public async addTransactions(accountId: string, transactionIds: string[]) {
     this.account.findByIdAndUpdate(
       accountId,
       { transaction: transactionIds },
