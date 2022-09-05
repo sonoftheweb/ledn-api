@@ -20,7 +20,7 @@ const TransactionSchema: Schema = new Schema({
   amount: { type: Number, required: true },
   type: { type: String, required: true },
   account: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
-  createdAt: { type: Date },
+  createdAt: { type: Date, default: Date.now() },
 });
 
 export default mongoose.model<ITransaction>("Transaction", TransactionSchema);

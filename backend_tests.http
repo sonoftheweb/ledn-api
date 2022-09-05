@@ -1,0 +1,22 @@
+GET http://localhost:8080/api/v1/accounts/
+Accept: application/json
+###
+GET http://localhost:8080/api/v1/accounts/Willow.Kautzer@gmail.com?withBalance=false
+Accept: application/json
+###
+PUT localhost:8080/api/v1/accounts/Cloyd16@hotmail.com
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_status": "active"
+}
+###
+PUT localhost:8080/api/v1/accounts/Cloyd16@hotmail.com
+Content-Type: application/json
+Accept: application/json
+
+{
+  "transaction_amount": 100000,
+  "transaction_type": "receive"
+}

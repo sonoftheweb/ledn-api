@@ -1,25 +1,20 @@
-import Account, { IAccount } from "../models/Account";
+import Account, { IAccount, Status } from "../models/Account";
 import MainService from "./MainService";
 import mongoose from "mongoose";
 import { isObjectId } from "../helpers/string-helpers";
+import { ITransaction, TransactionType } from "../models/Transaction";
+import { transactionWrapper } from "../helpers/db-helper";
+import TransactionService from "./TransactionService";
+import { getBalanceFromTransactions } from "../helpers/transaction-helpers";
 
-export interface IAccountService {
+class AccountService extends MainService {
   account: mongoose.Model<IAccount>;
-  addAccount: (account: IAccount) => Promise<IAccount>;
-  addAccounts: (account: IAccount[]) => Promise<IAccount[]>;
-  get: (page: number, perPage: number) => Promise<IAccount[]>;
-  addTransactions: (
-    accountId: string,
-    transactionIds: string[]
-  ) => Promise<void>;
-}
-
-class AccountService extends MainService implements IAccountService {
-  account: mongoose.Model<IAccount>;
+  transactionService: TransactionService;
 
   constructor() {
     super();
     this.account = Account;
+    this.transactionService = new TransactionService();
   }
 
   public async addAccount(account: IAccount): Promise<IAccount> {
@@ -38,7 +33,6 @@ class AccountService extends MainService implements IAccountService {
     try {
       return await this.account
         .find()
-        .populate("transactions")
         .limit(perPage)
         .skip(perPage * page);
     } catch (e) {
@@ -49,17 +43,14 @@ class AccountService extends MainService implements IAccountService {
   public async find(
     identifier: string,
     withTransactions: boolean = true
-  ): Promise<any> {
+  ): Promise<IAccount | null> {
     try {
       let data,
         filter = isObjectId(identifier)
           ? { _id: identifier }
           : { userEmail: identifier };
       if (withTransactions) {
-        data = await this.account
-          .findOne(filter)
-          .populate("transactions")
-          .exec();
+        data = await this.account.findOne(filter).populate("transactions");
       } else {
         data = await this.account.findOne(filter);
       }
@@ -69,12 +60,53 @@ class AccountService extends MainService implements IAccountService {
     }
   }
 
-  public async addTransactions(accountId: string, transactionIds: string[]) {
-    this.account.findByIdAndUpdate(
-      accountId,
-      { transaction: transactionIds },
-      { new: true, useFindAndModify: false }
-    );
+  public async addTransactionToAccount(
+    account_identifier: string,
+    amount: number,
+    transaction_type: TransactionType
+  ): Promise<string | IAccount> {
+    let account = await this.find(account_identifier, true);
+
+    if (account) {
+      if (
+        transaction_type === TransactionType.send &&
+        getBalanceFromTransactions(account.transactions as ITransaction[]) <
+          amount
+      ) {
+        throw new Error("Insufficient balance!");
+      }
+
+      if (account.status === Status.locked) throw new Error("Account locked!");
+
+      await transactionWrapper(async (session) => {
+        let transaction = await this.transactionService.addTransaction({
+          userEmail: account?.userEmail,
+          amount: amount,
+          type: transaction_type,
+          account: account?._id,
+        } as ITransaction);
+        account?.transactions?.push(transaction);
+        await account?.save();
+      });
+
+      return account;
+    } else {
+      return "Requires account!";
+    }
+  }
+
+  async update(param: { status: Status }, account: IAccount | string) {
+    let stringId;
+    if (isObjectId(account as string)) {
+      stringId = account;
+    } else {
+      stringId = (account as IAccount)._id;
+    }
+
+    return this.account.findByIdAndUpdate(stringId, param, {
+      upsert: false,
+      new: true,
+    });
   }
 }
 
