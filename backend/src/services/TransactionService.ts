@@ -1,7 +1,8 @@
 import Transaction, { ITransaction } from "../models/Transaction";
 import { IAccount } from "../models/Account";
+import MainService from "./MainService";
 
-class TransactionService {
+class TransactionService extends MainService {
   private transaction = Transaction;
 
   public async addTransaction(transaction: ITransaction) {

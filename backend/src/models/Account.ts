@@ -3,7 +3,7 @@ import Transaction, { ITransaction } from "./Transaction";
 
 export enum Status {
   active = 1,
-  inactive = 0,
+  locked = 0,
 }
 
 export interface IAccount extends Document {

@@ -3,6 +3,7 @@ import cors from "cors";
 import { initRoutes } from "./routes/v1/Routes";
 import mongoose from "mongoose";
 import { config } from "./config/config";
+import bodyParser from "body-parser";
 
 class App {
   public express: Express;
@@ -23,9 +24,11 @@ class App {
   }
 
   private initializeMiddleware(): void {
-    this.express.use(express.json());
     this.express.use(cors());
-    this.express.use(express.urlencoded({ extended: false }));
+    // this.express.use(express.json());
+    // this.express.use(express.urlencoded({ extended: false }));
+    this.express.use(bodyParser.json());
+    this.express.use(bodyParser.urlencoded({ extended: true }));
 
     this.express.use((req: Request, res: Response, next: NextFunction) => {
       res.header("Access-Control-Allow-Origin", "*");

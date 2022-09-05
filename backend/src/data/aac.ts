@@ -55,7 +55,7 @@ export function addAccounts(
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )
         .map((d: IAccount) => {
-          d.status = d.status === "active" ? Status.active : Status.inactive;
+          d.status = d.status === "active" ? Status.active : Status.locked;
           d._id = new mongoose.Types.ObjectId().toString();
 
           //filter all transactions for this account

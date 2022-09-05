@@ -15,7 +15,7 @@ export const initRoutes = (app: Express) => {
     app.get(`/api/v1/${item}`, IMPORTED_CLASS.index);
     app.get(`/api/v1/${item}/:id_or_email`, IMPORTED_CLASS.fetch);
     app.post(`/api/v1/${item}`, IMPORTED_CLASS.store);
-    app.put(`/api/v1/${item}/:data`, IMPORTED_CLASS.update);
+    app.put(`/api/v1/${item}/:id_or_email`, IMPORTED_CLASS.update);
     app.delete(`/api/v1/${item}/:id`, IMPORTED_CLASS.delete);
   });
 
